@@ -1,10 +1,11 @@
-package com.kmv.kvm_bot.services;
+package com.kmv.kvm_bot.controllers;
 
 import com.kmv.kvm_bot.config.BotConfig;
-import com.kmv.kvm_bot.controllers.CommandController;
-import com.kmv.kvm_bot.controllers.MessageController;
+
+import com.kmv.kvm_bot.entity.Diet;
 import com.kmv.kvm_bot.entity.Goal;
 import com.kmv.kvm_bot.entity.User;
+import com.kmv.kvm_bot.services.*;
 import com.kmv.kvm_bot.utill.NamesOfMainMenuButtons;
 import com.kmv.kvm_bot.utill.Strings;
 import com.vdurmont.emoji.EmojiParser;
@@ -26,7 +27,8 @@ import java.util.*;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
-
+    @Autowired
+    private DietRepository dietRepository;
     @Autowired
     private UserRepository userRepository;
     private final BotConfig botConfig;
@@ -41,7 +43,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static final Logger log = LogManager.getLogger(TelegramBot.class);
     @Autowired
     private MainKeyBoardService mainKeyBoardService;
-
+    @Autowired
+    private FitCalcService fitCalcService;
 
     private static TelegramBot instance;
 
@@ -72,22 +75,22 @@ public class TelegramBot extends TelegramLongPollingBot {
     @SneakyThrows
     @Override
     public void onUpdateReceived(Update update) {
-        if (userRepository.findById(update.getMessage().getChatId()).isPresent() || update.getMessage().getText().equals("/start")) {
-            if (update.hasMessage() && update.getMessage().hasText()) {
-                long chatId = update.getMessage().getChatId();
+        if (update.hasCallbackQuery()) {
+            callBackUserParam(update);
+        }
+        String text = update.getMessage().getText();
+        if (userRepository.findById(update.getMessage().getChatId()).isPresent() || text.equals("/start")) {
+            if (!text.isEmpty()) {
                 Message message = update.getMessage();
+                long chatId = message.getChatId();
                 messageController.addMessageInMessageList(message);
-                String text = message.getText();
                 log.info("message to bot " + message.getChat().getFirstName() + " " + text);
                 sendMessageToAllUsers(text);
                 callCommandPanel(update, text, chatId);
-
-            } else if (update.hasCallbackQuery()) {
-                callBackUserParam(update);
             }
             messageController.checkMessageAndSetParam(update);
         } else {
-            sendMessage(update.getMessage().getChatId(),"Вы не зарегистрированы. Для регистрации введите /start");
+            sendMessage(update.getMessage().getChatId(), "Вы не зарегистрированы. Для регистрации введите /start");
         }
     }
 
@@ -132,14 +135,39 @@ public class TelegramBot extends TelegramLongPollingBot {
             case NamesOfMainMenuButtons.HELP -> sendMessage(chatId, Strings.HELP_TEXT);
             case NamesOfMainMenuButtons.SHOW_MY_DATA ->
                     sendMessage(chatId, Objects.requireNonNull(userService.getUserByChatId(chatId)).toString());
-            case NamesOfMainMenuButtons.SET_MY_DATA -> execute(inLineKeyBoardService.setInlineButtonsForCommandSetData(chatId));
+            case NamesOfMainMenuButtons.SET_MY_DATA ->
+                    execute(inLineKeyBoardService.setInlineButtonsForCommandSetData(chatId));
             case NamesOfMainMenuButtons.DELETE_MY_DATA -> {
                 userRepository.deleteById(chatId);
-                sendMessage(chatId,"Ваши данные удалены, если хотите снова пользоваться ботом, то напишите /start");
+                sendMessage(chatId, "Ваши данные удалены, если хотите снова пользоваться ботом, то напишите /start");
+            }
+            case NamesOfMainMenuButtons.GET_ADVICE -> {
+                User user = userRepository.findById(chatId).orElse(null);
+                Diet diet;
+                if (user.getGoal() == Goal.MAINTAIN_WEIGHT) {
+                    diet = fitCalcService.calcForMaintain(user);
+                    saveDietWithUserAndSendMessage(chatId, user, diet);
+                } else if (user.getGoal() == Goal.LOSE_WEIGHT) {
+                    diet = fitCalcService.calcForLose(user);
+                    saveDietWithUserAndSendMessage(chatId, user, diet);
+                } else if (user.getGoal() == Goal.GAIN_WEIGHT) {
+                    diet = fitCalcService.calcForGain(user);
+                    saveDietWithUserAndSendMessage(chatId, user, diet);
+                } else {
+                    sendMessage(chatId, "Заполните данные о себе. Нажмите кнопку " + NamesOfMainMenuButtons.SET_MY_DATA);
+                }
             }
 
-            default -> log.info("В чате " + chatId + " была введена неопознанная команда");
+            default -> log.info("В чате " + chatId + text);
         }
+    }
+
+    private void saveDietWithUserAndSendMessage(long chatId, User user, Diet diet) {
+        dietRepository.delete(diet);
+        dietRepository.save(diet);
+        user.getDiet().add(diet);
+        userRepository.save(user);
+        sendMessage(chatId, diet.toString());
     }
 
     public void sendMessageToAllUsers(String text) {

@@ -1,7 +1,7 @@
 package com.kmv.kvm_bot.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,12 +9,15 @@ import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Entity(name = "users")
+@Transactional
 public class User {
 
     @Id
@@ -22,11 +25,12 @@ public class User {
     private String firstName;
     private String lastName;
     private String userName;
-
     private int weight;
     private int height;
     private Goal goal = Goal.WITH_OUT_GOAL;
     private Timestamp joinTime;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "user", orphanRemoval = true,fetch = FetchType.EAGER)
+    private List<Diet> diet = new ArrayList<>();
 
     @Override
     public String toString() {

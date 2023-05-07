@@ -1,8 +1,8 @@
 package com.kmv.kvm_bot.controllers;
 
 import com.kmv.kvm_bot.entity.User;
-import com.kmv.kvm_bot.services.TelegramBot;
 import com.kmv.kvm_bot.services.UserRepository;
+import com.kmv.kvm_bot.utill.NamesOfMainMenuButtons;
 import com.kmv.kvm_bot.utill.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -35,7 +35,7 @@ public class MessageController {
     public void checkMessageAndSetParam(Update update) {
         Long chatId = update.getMessage().getChatId();
         List<Message> messages = messageHashMap.get(chatId);
-        if (messages.get(messages.size() - 2).getText().equals("/setmydata")) {
+        if (messages.get(messages.size() - 2).getText().equals(NamesOfMainMenuButtons.SET_MY_DATA)) {
             User user = userRepository.findById(chatId).orElse(null);
             String lastValueOfCallBackList = callBackList.get(callBackList.size() - 1);
             String text = update.getMessage().getText();

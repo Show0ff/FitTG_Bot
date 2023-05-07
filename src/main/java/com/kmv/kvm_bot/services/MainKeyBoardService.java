@@ -19,6 +19,7 @@ public class MainKeyBoardService {
         KeyboardRow keyBoardRow = new KeyboardRow();
         keyBoardRow.add(NamesOfMainMenuButtons.SHOW_MY_DATA);
         keyBoardRow.add(NamesOfMainMenuButtons.SET_MY_DATA);
+        keyBoardRow.add(NamesOfMainMenuButtons.GET_ADVICE);
 
         keyBoardRows.add(keyBoardRow);
 

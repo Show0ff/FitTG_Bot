@@ -1,6 +1,6 @@
 package com.kmv.kvm_bot.config;
 
-import com.kmv.kvm_bot.services.TelegramBot;
+import com.kmv.kvm_bot.controllers.TelegramBot;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;

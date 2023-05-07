@@ -7,4 +7,5 @@ public class NamesOfMainMenuButtons {
     public static final String DELETE_MY_DATA = "Удалить свои данные";
 
     public static final String HELP = "Помощь";
+    public static final String GET_ADVICE = "Получить совет";
 }
